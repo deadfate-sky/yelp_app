@@ -1,0 +1,149 @@
+---
+title: "Yelp ShinyApps - wordcloud"
+output: 
+  flexdashboard::flex_dashboard:
+    vertical_layout: fill
+runtime: shiny
+---
+```{r setup, include=FALSE}
+pacman::p_load(flexdashboard,shinyWidgets,wordcloud2,dplyr,shinythemes,lubridate)
+load("../data/Bmx.RData");load("../data/rev_id.RData")
+source("/home/tonychuo/_sparklyr.R")
+dtm <- spark_read_parquet(sc, "dtm", "/home/sum2020/yelp/matrix")
+cate <- colnames(Bmx)
+```
+
+Column
+-------------------------------------
+    
+
+### 文字雲-1
+```{r}
+dropdownButton(
+        tags$h3("List of Inputs"),
+        selectInput("Yb", label = "Year",
+              choices = 2004:2019, selected = 2018),
+        shinyWidgets::pickerInput(
+          "Cat",label = "category", 
+          choices = cate,
+          selected=sample(cate,3),
+          options=list(style="btn-primary", `actions-Box` = TRUE), 
+          multiple = TRUE
+        ),
+        sliderInput("Mb1",  "前端(高頻)遮罩",  0, 20, 1, 1),
+        sliderInput("Mb2",  "末端(低頻)遮罩",  0, 20, 2, 1),
+        
+        prettyRadioButtons(
+              "Sqrtb", "字頻開更號", choices = list("是"=1, "否"=0),
+              selected = 1, inline=T, icon=icon("check"), 
+              status="success", animation="jelly"),
+        
+        circle = TRUE, status = "danger",
+        inputId = "mydropdown",
+        icon = icon("gear"), width = "300px"
+      )
+
+# input <- list(Cat = sample(cate,3), Yb = 2017)
+
+B = reactive({
+  idx <- rownames(Bmx)[rowSums(as.matrix(Bmx[,which(cate %in% input$Cat)]))>0]
+  
+  # rid <- rev_biz_id %>% 
+  #   filter(lubridate::year(date)==2018,
+  #          business_id %in% idx
+  #          ) %>% 
+  #   pull(rid)
+  
+  rid <- rev_biz_id %>% 
+    filter(lubridate::year(date)==as.numeric(input$Yb),
+           business_id %in% idx
+           ) %>% 
+    pull(rid)
+  
+  wc<- dtm %>% 
+    select(doc_id, lemma, freq) %>% 
+    filter(as.integer(doc_id) %in% rid) %>% 
+    group_by(lemma) %>% 
+    summarise(freq = sum(freq, na.rm = TRUE)) %>% 
+    rename(word = lemma)
+  
+  wc <- wc %>% arrange(desc(freq)) %>% head(200)
+
+  wc <-  collect(wc)
+  if(input$Sqrtb == "1") wc$freq = sqrt(wc$freq)
+  wc
+  
+  })
+
+
+renderWordcloud2(
+  wordcloud2(
+    B()
+    )
+)
+```   
+
+Column
+-------------------------------------
+   
+### 文字雲-2
+
+```{r}
+dropdownButton(
+        tags$h3("List of Inputs"),
+        selectInput("Ya", label = "Year",
+              choices = 2004:2019, selected = 2017),
+        shinyWidgets::pickerInput(
+          "Cata",label = "category", 
+          choices = cate,
+          selected=sample(cate,3),
+          options=list(style="btn-primary", `actions-Box` = TRUE), 
+          multiple = TRUE
+        ),
+        sliderInput("Mb1",  "前端(高頻)遮罩",  0, 20, 1, 1),
+        sliderInput("Mb2",  "末端(低頻)遮罩",  0, 20, 2, 1),
+        
+        prettyRadioButtons(
+              "Sqrta", "字頻開更號", choices = list("是"=1, "否"=0),
+              selected = 1, inline=T, icon=icon("check"), 
+              status="success", animation="jelly"),
+        
+        circle = TRUE, status = "danger",
+        inputId = "mydropdown",
+        icon = icon("gear"), width = "300px"
+      )
+
+A = reactive({
+  idx <- rownames(Bmx)[rowSums(as.matrix(Bmx[,which(cate %in% input$Cata)]))>0]
+  
+  # rid <- rev_biz_id %>% 
+  #   filter(lubridate::year(date)==2018,
+  #          business_id %in% idx
+  #          ) %>% 
+  #   pull(rid)
+  
+  rid <- rev_biz_id %>% 
+    filter(lubridate::year(date)==as.numeric(input$Ya),
+           business_id %in% idx
+           ) %>% 
+    pull(rid)
+  
+  wc_a<- dtm %>% 
+    select(doc_id, lemma, freq) %>% 
+    filter(as.integer(doc_id) %in% rid) %>% 
+    group_by(lemma) %>% 
+    summarise(freq = sum(freq, na.rm = TRUE)) %>% 
+    rename(word = lemma)
+  
+ wc_a <- wc_a %>% arrange(desc(freq)) %>% head(200)
+  
+  wc_a <-  collect(wc_a)
+  if(input$Sqrta == "1") wc_a$freq = sqrt(wc_a$freq)
+  wc_a
+  })
+renderWordcloud2(
+  wordcloud2(
+    A()
+    )
+)
+```   
