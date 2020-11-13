@@ -8,9 +8,26 @@ runtime: shiny
 ```{r setup, include=FALSE}
 pacman::p_load(flexdashboard,shinyWidgets,wordcloud2,dplyr,shinythemes,lubridate)
 load("../data/Bmx.RData");load("../data/rev_id.RData")
-source("/home/tonychuo/_sparklyr.R")
+
+##spark
+library(dplyr) 
+library(sparklyr)
+# Sys.setenv(SPARK_HOME="/usr/local/spark/spark-2.1.0-bin-hadoop2.7/")
+Sys.setenv(SPARK_HOME="/usr/local/spark/spark-2.4.5-bin-hadoop2.7")
+config <- spark_config()
+config$spark.executor.memory = "32G"
+config$spark.driver.memory = "32G"
+config$spark.yarn.executor.memoryOverhead = "4096"
+config$spark.cores.max = "64"
+config$spark.dynamicAllocation.enabled="true"
+config$spark.dynamicAllocation.executorIdleTimeout="120s"
+sc = spark_connect(master = "spark://hnamenode:7077", config = config)
+
+#####
 dtm <- spark_read_parquet(sc, "dtm", "/home/sum2020/yelp/matrix")
-cate <- colnames(Bmx)
+cate <- colnames(Bmx)[(colSums(Bmx)>390)]
+
+
 ```
 
 Column
@@ -19,6 +36,7 @@ Column
 
 ### 文字雲-1
 ```{r}
+
 dropdownButton(
         tags$h3("List of Inputs"),
         selectInput("Yb", label = "Year",
