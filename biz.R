@@ -5,7 +5,15 @@ load("/home/sum2020/yelp14/data/rev.rdata")
 pacman::p_load(dplyr, stringr, lubridate)
 rev_biz_id<- rev[,c("rid", "business_id", "date")]
 # save(rev_biz_id, file = "/home/b056090027/yelp14/data/rev_id.RData")
-# save(Bmx, file = "/home/b056090027/yelp14/Bmx.RData")
+# save(Bmx, file = "/home/b056090027/yelp14/data/Bmx.RData")
+
+
+load(file = "/home/b056090027/yelp14/data/Bmx.RData")
+
+
+
+
+
 
 ###############################
 

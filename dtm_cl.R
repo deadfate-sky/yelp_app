@@ -69,12 +69,23 @@ head(dtm)
 dtm %>%
   summarise_at(
     vars(doc_id,lemma), n_distinct
-  ) 
+  )
 # Source: spark<?> [?? x 2]
 # doc_id lemma
 # <dbl> <dbl>
 #   1 8019270 32403
+library(stringr)
+stopwd <- c("go",
+            "come",
+            
+            tm::stopwords())
+stopwd <- c(stopwd, str_to_upper(stopwd), str_to_title(stopwd), str_to_sentence(stopwd))
 
+dtm <- dtm %>% 
+  filter(!lemma %in% stopwd)
+dtm %>% count()
+
+spark_write_parquet(dtm, path = "/home/sum2020/yelp/matrix", mode = "overwrite")
 
 rid <- rev_biz_id %>%
   filter(lubridate::year(date)==2018,

@@ -25,10 +25,16 @@ sc = spark_connect(master = "spark://hnamenode:7077", config = config)
 
 #####
 dtm <- spark_read_parquet(sc, "dtm", "/home/sum2020/yelp/matrix")
-cate <- colnames(Bmx)[(colSums(Bmx)>390)]
+# quantile(colSums(Bmx), seq(0.8,1,0.02))
+# cate <- colnames(Bmx)[(colSums(Bmx)>1000)]
+
+
+cate <- colnames(Bmx)[order(colSums(Bmx), decreasing = TRUE)]
 
 
 ```
+
+
 
 Column
 -------------------------------------
@@ -39,13 +45,25 @@ Column
 
 dropdownButton(
         tags$h3("List of Inputs"),
+        actionButton("go", label = "Go!!", class = "btn-primary"),
+        
         selectInput("Yb", label = "Year",
               choices = 2004:2019, selected = 2018),
-        shinyWidgets::pickerInput(
-          "Cat",label = "category", 
+        # pickerInput(
+        #   inputId="Cat", 
+        #   label = "選擇主題", 
+        #   choices = cate,
+        #   selected = sample(cate,2),
+        #   options = list(`actions-Box` = TRUE,
+        #                  `live-search`=TRUE, 
+        #                  style="btn-primary"),
+        #   multiple = TRUE
+        # ),
+        pickerInput(
+          "Cat",label = "category",
           choices = cate,
-          selected=sample(cate,3),
-          options=list(style="btn-primary", `actions-Box` = TRUE), 
+          selected=head(cate, 2),
+          options=list(style="btn-primary", `actions-Box` = TRUE),
           multiple = TRUE
         ),
         sliderInput("Mb1",  "前端(高頻)遮罩",  0, 20, 1, 1),
@@ -61,9 +79,8 @@ dropdownButton(
         icon = icon("gear"), width = "300px"
       )
 
-# input <- list(Cat = sample(cate,3), Yb = 2017)
-
-B = reactive({
+# input <- list(Cat = sample(cate,2), Yb = 2017)
+B = eventReactive(input$go, {
   idx <- rownames(Bmx)[rowSums(as.matrix(Bmx[,which(cate %in% input$Cat)]))>0]
   
   # rid <- rev_biz_id %>% 
@@ -90,15 +107,19 @@ B = reactive({
   wc <-  collect(wc)
   if(input$Sqrtb == "1") wc$freq = sqrt(wc$freq)
   wc
-  
-  })
+})
 
 
 renderWordcloud2(
   wordcloud2(
     B()
     )
-)
+  )  
+
+
+
+
+
 ```   
 
 Column
@@ -109,12 +130,13 @@ Column
 ```{r}
 dropdownButton(
         tags$h3("List of Inputs"),
+        actionButton("goA", label = "Go!!", class = "btn-primary"),
         selectInput("Ya", label = "Year",
               choices = 2004:2019, selected = 2017),
         shinyWidgets::pickerInput(
           "Cata",label = "category", 
           choices = cate,
-          selected=sample(cate,3),
+          selected=head(cate, 2),
           options=list(style="btn-primary", `actions-Box` = TRUE), 
           multiple = TRUE
         ),
@@ -131,7 +153,8 @@ dropdownButton(
         icon = icon("gear"), width = "300px"
       )
 
-A = reactive({
+A = eventReactive(input$goA, {
+  #reactive({
   idx <- rownames(Bmx)[rowSums(as.matrix(Bmx[,which(cate %in% input$Cata)]))>0]
   
   # rid <- rev_biz_id %>% 
