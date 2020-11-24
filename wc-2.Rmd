@@ -7,12 +7,12 @@ runtime: shiny
 ---
 ```{r setup, include=FALSE}
 pacman::p_load(flexdashboard,shinyWidgets,wordcloud2,dplyr,shinythemes,lubridate)
-load("../data/Bmx.RData");load("../data/rev_id.RData")
+load("data/Bmx.RData");load("data/rev_id.RData")
 
 ##spark
 library(dplyr) 
 library(sparklyr)
-# Sys.setenv(SPARK_HOME="/usr/local/spark/spark-2.1.0-bin-hadoop2.7/")
+Sys.setenv(SPARK_HOME="/usr/local/spark/spark-2.1.0-bin-hadoop2.7/")
 Sys.setenv(SPARK_HOME="/usr/local/spark/spark-2.4.5-bin-hadoop2.7")
 config <- spark_config()
 config$spark.executor.memory = "32G"
@@ -43,7 +43,7 @@ Column
 ### 文字雲-1
 ```{r}
 
-dropdownButton(
+dropdown(
         tags$h3("List of Inputs"),
         actionButton("go", label = "Go!!", class = "btn-primary"),
         
@@ -59,15 +59,16 @@ dropdownButton(
         #                  style="btn-primary"),
         #   multiple = TRUE
         # ),
-        pickerInput(
+        selectInput(
           "Cat",label = "category",
           choices = cate,
-          selected=head(cate, 2),
-          options=list(style="btn-primary", `actions-Box` = TRUE),
+          selected=head(cate, 10)[5],
           multiple = TRUE
         ),
-        sliderInput("Mb1",  "前端(高頻)遮罩",  0, 20, 1, 1),
-        sliderInput("Mb2",  "末端(低頻)遮罩",  0, 20, 2, 1),
+         sliderInput("sldb", label = "amount", min = 10, 
+        max = 750, value = 200),
+        sliderInput("Mb1",  "詞頻遮罩",  0, 100, 25, 1),
+        sliderInput("Mb2",  "個數遮罩",  0, 20, 5, 1),
         
         prettyRadioButtons(
               "Sqrtb", "字頻開更號", choices = list("是"=1, "否"=0),
@@ -79,15 +80,9 @@ dropdownButton(
         icon = icon("gear"), width = "300px"
       )
 
-# input <- list(Cat = sample(cate,2), Yb = 2017)
+# input <- list(Cat = sample(cate,2), Yb = 2017, sld1 = 200, Mb1 = 25, Mb2 = 5)
 B = eventReactive(input$go, {
   idx <- rownames(Bmx)[rowSums(as.matrix(Bmx[,which(cate %in% input$Cat)]))>0]
-  
-  # rid <- rev_biz_id %>% 
-  #   filter(lubridate::year(date)==2018,
-  #          business_id %in% idx
-  #          ) %>% 
-  #   pull(rid)
   
   rid <- rev_biz_id %>% 
     filter(lubridate::year(date)==as.numeric(input$Yb),
@@ -102,9 +97,14 @@ B = eventReactive(input$go, {
     summarise(freq = sum(freq, na.rm = TRUE)) %>% 
     rename(word = lemma)
   
-  wc <- wc %>% arrange(desc(freq)) %>% head(200)
-
+  wc <- wc %>% arrange(desc(freq)) %>% head(input$sldb)
+    
   wc <-  collect(wc)
+  
+  wc <- wc %>% 
+    filter(freq > quantile(wc$freq, probs = input$Mb1/100)) %>% 
+    slice((1+input$Mb2):nrow(wc)) 
+  
   if(input$Sqrtb == "1") wc$freq = sqrt(wc$freq)
   wc
 })
@@ -131,17 +131,19 @@ Column
 dropdownButton(
         tags$h3("List of Inputs"),
         actionButton("goA", label = "Go!!", class = "btn-primary"),
+        
         selectInput("Ya", label = "Year",
               choices = 2004:2019, selected = 2017),
-        shinyWidgets::pickerInput(
+        selectInput(
           "Cata",label = "category", 
           choices = cate,
-          selected=head(cate, 2),
-          options=list(style="btn-primary", `actions-Box` = TRUE), 
+          selected=head(cate, 10)[8],
           multiple = TRUE
         ),
-        sliderInput("Mb1",  "前端(高頻)遮罩",  0, 20, 1, 1),
-        sliderInput("Mb2",  "末端(低頻)遮罩",  0, 20, 2, 1),
+        sliderInput("slda", label = "amount", min = 10, 
+        max = 750, value = 200),
+        sliderInput("Ma1",  "前端(高頻)遮罩",  0, 20, 1, 1),
+        sliderInput("Ma2",  "末端(低頻)遮罩",  0, 20, 2, 1),
         
         prettyRadioButtons(
               "Sqrta", "字頻開更號", choices = list("是"=1, "否"=0),
@@ -157,12 +159,6 @@ A = eventReactive(input$goA, {
   #reactive({
   idx <- rownames(Bmx)[rowSums(as.matrix(Bmx[,which(cate %in% input$Cata)]))>0]
   
-  # rid <- rev_biz_id %>% 
-  #   filter(lubridate::year(date)==2018,
-  #          business_id %in% idx
-  #          ) %>% 
-  #   pull(rid)
-  
   rid <- rev_biz_id %>% 
     filter(lubridate::year(date)==as.numeric(input$Ya),
            business_id %in% idx
@@ -176,9 +172,14 @@ A = eventReactive(input$goA, {
     summarise(freq = sum(freq, na.rm = TRUE)) %>% 
     rename(word = lemma)
   
- wc_a <- wc_a %>% arrange(desc(freq)) %>% head(200)
+  wc_a <- wc_a %>% arrange(desc(freq)) %>% head(input$slda)
   
   wc_a <-  collect(wc_a)
+  
+  wc_a <- wc_a %>% 
+    filter(freq > quantile(wc_a$freq, probs = input$Ma1/100)) %>% 
+    slice((1+input$Ma2):nrow(wc_a))
+  
   if(input$Sqrta == "1") wc_a$freq = sqrt(wc_a$freq)
   wc_a
   })
