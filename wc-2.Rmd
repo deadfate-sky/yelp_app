@@ -6,7 +6,7 @@ output:
 runtime: shiny
 ---
 ```{r setup, include=FALSE}
-pacman::p_load(flexdashboard,shinyWidgets,wordcloud2,dplyr,shinythemes,lubridate)
+pacman::p_load(flexdashboard,shiny,shinyWidgets,wordcloud2,dplyr,shinythemes,lubridate)
 load("data/Bmx.RData");load("data/rev_id.RData")
 
 ##spark
@@ -34,6 +34,13 @@ cate <- colnames(Bmx)[order(colSums(Bmx), decreasing = TRUE)]
 
 ```
 
+Inputs {.sidebar data-width=200}
+-------------------------------------
+```{r}
+actionButton("go", label = "Go!!", class = "btn-primary", width = "100%")
+br();br()
+actionButton("goA", label = "Go!!", class = "btn-danger", width = "100%")
+```
 
 
 Column
@@ -44,8 +51,8 @@ Column
 ```{r}
 
 dropdown(
-        tags$h3("List of Inputs"),
-        actionButton("go", label = "Go!!", class = "btn-primary"),
+        tags$h4("List of Inputs"),
+        #actionButton("go", label = "Go!!", class = "btn-primary"),
         
         selectInput("Yb", label = "Year",
               choices = 2004:2019, selected = 2018),
@@ -75,8 +82,8 @@ dropdown(
               selected = 1, inline=T, icon=icon("check"), 
               status="success", animation="jelly"),
         
-        circle = TRUE, status = "danger",
-        inputId = "mydropdown",
+        circle = TRUE, status = "primary",
+        inputId = "mydropdownB",
         icon = icon("gear"), width = "300px"
       )
 
@@ -129,8 +136,8 @@ Column
 
 ```{r}
 dropdownButton(
-        tags$h3("List of Inputs"),
-        actionButton("goA", label = "Go!!", class = "btn-primary"),
+        tags$h4("List of Inputs"),
+        #actionButton("goA", label = "Go!!", class = "btn-primary"),
         
         selectInput("Ya", label = "Year",
               choices = 2004:2019, selected = 2017),
@@ -151,7 +158,7 @@ dropdownButton(
               status="success", animation="jelly"),
         
         circle = TRUE, status = "danger",
-        inputId = "mydropdown",
+        inputId = "mydropdownA",
         icon = icon("gear"), width = "300px"
       )
 
