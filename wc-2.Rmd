@@ -2,7 +2,11 @@
 title: "Yelp ShinyApps - wordcloud"
 output: 
   flexdashboard::flex_dashboard:
-    vertical_layout: fill
+    orientation: columns
+    theme: default
+    logo: nsysu.png
+    favicon: nsysu.png
+    source_code: embed
 runtime: shiny
 ---
 ```{r setup, include=FALSE}
@@ -28,90 +32,108 @@ dtm <- spark_read_parquet(sc, "dtm", "/home/sum2020/yelp/matrix")
 # quantile(colSums(Bmx), seq(0.8,1,0.02))
 # cate <- colnames(Bmx)[(colSums(Bmx)>1000)]
 
-
 cate <- colnames(Bmx)[order(colSums(Bmx), decreasing = TRUE)]
 
-
 ```
 
-Inputs {.sidebar data-width=200}
+第一文字雲 {data-icon="fa-cog"}
+=====================================================
+
+Column {data-width=25%}
 -------------------------------------
+### 詳細設定
+
 ```{r}
-actionButton("go", label = "Go!!", class = "btn-primary", width = "100%")
-br();br()
-actionButton("goA", label = "Go!!", class = "btn-danger", width = "100%")
-```
-
-
-Column
--------------------------------------
-    
-
-### 文字雲-1
-```{r}
-
-dropdown(
-        tags$h4("List of Inputs"),
-        #actionButton("go", label = "Go!!", class = "btn-primary"),
-        
-        selectInput("Yb", label = "Year",
-              choices = 2004:2019, selected = 2018),
-        # pickerInput(
-        #   inputId="Cat", 
-        #   label = "選擇主題", 
-        #   choices = cate,
-        #   selected = sample(cate,2),
-        #   options = list(`actions-Box` = TRUE,
-        #                  `live-search`=TRUE, 
-        #                  style="btn-primary"),
-        #   multiple = TRUE
-        # ),
-        selectInput(
-          "Cat",label = "category",
+chooseSliderSkin("Modern")
+selectInput("Yb", label = "Year",
+              choices = 2004:2019, selected = 2018)
+       
+selectInput("Cat",label = "category",
           choices = cate,
           selected=head(cate, 10)[5],
           multiple = TRUE
-        ),
-         sliderInput("sldb", label = "amount", min = 10, 
-        max = 750, value = 200),
-        sliderInput("Mb1",  "詞頻遮罩",  0, 100, 25, 1),
-        sliderInput("Mb2",  "個數遮罩",  0, 20, 5, 1),
-        
-        prettyRadioButtons(
+)
+sliderInput("sldb", label = "amount", min = 10,
+        max = 750, value = 200)
+sliderInput("Mb1",  "詞頻遮罩",  0, 100, 25, 1)
+sliderInput("Mb2",  "個數遮罩",  0, 20, 5, 1)
+
+prettyRadioButtons(
               "Sqrtb", "字頻開更號", choices = list("是"=1, "否"=0),
-              selected = 1, inline=T, icon=icon("check"), 
-              status="success", animation="jelly"),
-        
-        circle = TRUE, status = "primary",
-        inputId = "mydropdownB",
-        icon = icon("gear"), width = "300px"
-      )
+              selected = 1, inline=T, icon=icon("check"),
+              status="success", animation="jelly")
+
+actionButton("go", label = "Go!!", class = "btn-primary", width = "100%")
+```
+
+Column {data-width=75%}
+-------------------------------------
+    
+### 第一文字雲
+```{r}
+
+# dropdown(
+#         tags$h4("List of Inputs"),
+#         #actionButton("go", label = "Go!!", class = "btn-primary"),
+#         
+#         selectInput("Yb", label = "Year",
+#               choices = 2004:2019, selected = 2018),
+#         # pickerInput(
+#         #   inputId="Cat", 
+#         #   label = "選擇主題", 
+#         #   choices = cate,
+#         #   selected = sample(cate,2),
+#         #   options = list(`actions-Box` = TRUE,
+#         #                  `live-search`=TRUE, 
+#         #                  style="btn-primary"),
+#         #   multiple = TRUE
+#         # ),
+#         selectInput(
+#           "Cat",label = "category",
+#           choices = cate,
+#           selected=head(cate, 10)[5],
+#           multiple = TRUE
+#         ),
+#          sliderInput("sldb", label = "amount", min = 10, 
+#         max = 750, value = 200),
+#         sliderInput("Mb1",  "詞頻遮罩",  0, 100, 25, 1),
+#         sliderInput("Mb2",  "個數遮罩",  0, 20, 5, 1),
+#         
+#         prettyRadioButtons(
+#               "Sqrtb", "字頻開更號", choices = list("是"=1, "否"=0),
+#               selected = 1, inline=T, icon=icon("check"), 
+#               status="success", animation="jelly"),
+#         
+#         circle = TRUE, status = "primary",
+#         inputId = "mydropdownB",
+#         icon = icon("gear"), width = "300px"
+#       )
 
 # input <- list(Cat = sample(cate,2), Yb = 2017, sld1 = 200, Mb1 = 25, Mb2 = 5)
 B = eventReactive(input$go, {
   idx <- rownames(Bmx)[rowSums(as.matrix(Bmx[,which(cate %in% input$Cat)]))>0]
-  
-  rid <- rev_biz_id %>% 
+
+  rid <- rev_biz_id %>%
     filter(lubridate::year(date)==as.numeric(input$Yb),
            business_id %in% idx
-           ) %>% 
+           ) %>%
     pull(rid)
-  
-  wc<- dtm %>% 
-    select(doc_id, lemma, freq) %>% 
-    filter(as.integer(doc_id) %in% rid) %>% 
-    group_by(lemma) %>% 
-    summarise(freq = sum(freq, na.rm = TRUE)) %>% 
+
+  wc<- dtm %>%
+    select(doc_id, lemma, freq) %>%
+    filter(as.integer(doc_id) %in% rid) %>%
+    group_by(lemma) %>%
+    summarise(freq = sum(freq, na.rm = TRUE)) %>%
     rename(word = lemma)
-  
+
   wc <- wc %>% arrange(desc(freq)) %>% head(input$sldb)
-    
+
   wc <-  collect(wc)
-  
-  wc <- wc %>% 
-    filter(freq > quantile(wc$freq, probs = input$Mb1/100)) %>% 
-    slice((1+input$Mb2):nrow(wc)) 
-  
+
+  wc <- wc %>%
+    filter(freq > quantile(wc$freq, probs = input$Mb1/100)) %>%
+    slice((1+input$Mb2):nrow(wc))
+
   if(input$Sqrtb == "1") wc$freq = sqrt(wc$freq)
   wc
 })
@@ -123,72 +145,98 @@ renderWordcloud2(
     )
   )  
 
-
-
-
-
 ```   
 
-Column
+第二文字雲 {data-icon="fa-cogs"}
+=====================================================
+
+Column {data-width=25%}
 -------------------------------------
-   
-### 文字雲-2
+### 詳細設定
 
 ```{r}
-dropdownButton(
-        tags$h4("List of Inputs"),
-        #actionButton("goA", label = "Go!!", class = "btn-primary"),
-        
-        selectInput("Ya", label = "Year",
-              choices = 2004:2019, selected = 2017),
-        selectInput(
+chooseSliderSkin("Modern")
+selectInput("Ya", label = "Year",
+              choices = 2004:2019, selected = 2017)
+selectInput(
           "Cata",label = "category", 
           choices = cate,
           selected=head(cate, 10)[8],
           multiple = TRUE
-        ),
-        sliderInput("slda", label = "amount", min = 10, 
-        max = 750, value = 200),
-        sliderInput("Ma1",  "前端(高頻)遮罩",  0, 20, 1, 1),
-        sliderInput("Ma2",  "末端(低頻)遮罩",  0, 20, 2, 1),
+        )
+sliderInput("slda", label = "amount", min = 10, 
+        max = 750, value = 200)
+sliderInput("Ma1",  "前端(高頻)遮罩",  0, 20, 1, 1)
+sliderInput("Ma2",  "末端(低頻)遮罩",  0, 20, 2, 1)
         
-        prettyRadioButtons(
+prettyRadioButtons(
               "Sqrta", "字頻開更號", choices = list("是"=1, "否"=0),
               selected = 1, inline=T, icon=icon("check"), 
-              status="success", animation="jelly"),
-        
-        circle = TRUE, status = "danger",
-        inputId = "mydropdownA",
-        icon = icon("gear"), width = "300px"
-      )
+              status="success", animation="jelly")
+
+actionButton("goA", label = "Go!!", class = "btn-danger", width = "100%")
+```
+
+Column {data-width=75%}
+-------------------------------------
+### 第二文字雲
+
+```{r}
+# dropdownButton(
+#         tags$h4("List of Inputs"),
+#         #actionButton("goA", label = "Go!!", class = "btn-primary"),
+#         
+#         selectInput("Ya", label = "Year",
+#               choices = 2004:2019, selected = 2017),
+#         selectInput(
+#           "Cata",label = "category", 
+#           choices = cate,
+#           selected=head(cate, 10)[8],
+#           multiple = TRUE
+#         ),
+#         sliderInput("slda", label = "amount", min = 10, 
+#         max = 750, value = 200),
+#         sliderInput("Ma1",  "前端(高頻)遮罩",  0, 20, 1, 1),
+#         sliderInput("Ma2",  "末端(低頻)遮罩",  0, 20, 2, 1),
+#         
+#         prettyRadioButtons(
+#               "Sqrta", "字頻開更號", choices = list("是"=1, "否"=0),
+#               selected = 1, inline=T, icon=icon("check"), 
+#               status="success", animation="jelly"),
+#         
+#         circle = TRUE, status = "danger",
+#         inputId = "mydropdownA",
+#         icon = icon("gear"), width = "300px"
+#       )
 
 A = eventReactive(input$goA, {
   #reactive({
   idx <- rownames(Bmx)[rowSums(as.matrix(Bmx[,which(cate %in% input$Cata)]))>0]
-  
-  rid <- rev_biz_id %>% 
+
+  rid <- rev_biz_id %>%
     filter(lubridate::year(date)==as.numeric(input$Ya),
            business_id %in% idx
-           ) %>% 
+           ) %>%
     pull(rid)
-  
-  wc_a<- dtm %>% 
-    select(doc_id, lemma, freq) %>% 
-    filter(as.integer(doc_id) %in% rid) %>% 
-    group_by(lemma) %>% 
-    summarise(freq = sum(freq, na.rm = TRUE)) %>% 
+
+  wc_a<- dtm %>%
+    select(doc_id, lemma, freq) %>%
+    filter(as.integer(doc_id) %in% rid) %>%
+    group_by(lemma) %>%
+    summarise(freq = sum(freq, na.rm = TRUE)) %>%
     rename(word = lemma)
-  
+
   wc_a <- wc_a %>% arrange(desc(freq)) %>% head(input$slda)
-  
+
   wc_a <-  collect(wc_a)
-  
-  wc_a <- wc_a %>% 
-    filter(freq > quantile(wc_a$freq, probs = input$Ma1/100)) %>% 
+
+  wc_a <- wc_a %>%
+    filter(freq > quantile(wc_a$freq, probs = input$Ma1/100)) %>%
     slice((1+input$Ma2):nrow(wc_a))
-  
+
   if(input$Sqrta == "1") wc_a$freq = sqrt(wc_a$freq)
   wc_a
+
   })
 renderWordcloud2(
   wordcloud2(
@@ -196,3 +244,25 @@ renderWordcloud2(
     )
 )
 ```   
+
+字雲比較 {data-icon="fa-window-restore"}
+=====================================================
+
+Column
+-------------------------------------
+<!-- ### 第一字雲 -->
+<!-- ```{r} -->
+<!-- renderWordcloud2( -->
+<!--   wordcloud2(B()) -->
+<!--   ) -->
+<!-- ``` -->
+
+<!-- Column -->
+<!-- ------------------------------------- -->
+<!-- ### 第二字雲 -->
+<!-- ```{r} -->
+<!-- renderWordcloud2( -->
+<!--   wordcloud2(A()) -->
+<!-- ) -->
+<!-- ``` -->
+
