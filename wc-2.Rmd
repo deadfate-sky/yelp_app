@@ -15,15 +15,15 @@ load("data/Bmx.RData");load("data/rev_id.RData")
 
 ##spark
 library(sparklyr)
-Sys.setenv(SPARK_HOME="/usr/local/spark/spark-2.1.0-bin-hadoop2.7/")
-Sys.setenv(SPARK_HOME="/usr/local/spark/spark-2.4.5-bin-hadoop2.7")
+Sys.setenv(SPARK_HOME = "/usr/local/spark/spark-2.1.0-bin-hadoop2.7/")
+Sys.setenv(SPARK_HOME = "/usr/local/spark/spark-2.4.5-bin-hadoop2.7")
 config <- spark_config()
 config$spark.executor.memory = "32G"
 config$spark.driver.memory = "32G"
 config$spark.yarn.executor.memoryOverhead = "4096"
 config$spark.cores.max = "64"
-config$spark.dynamicAllocation.enabled="true"
-config$spark.dynamicAllocation.executorIdleTimeout="120s"
+config$spark.dynamicAllocation.enabled = "true"
+config$spark.dynamicAllocation.executorIdleTimeout = "120s"
 sc = spark_connect(master = "spark://hnamenode:7077", config = config)
 
 #####
@@ -41,25 +41,45 @@ Column {data-width=25%}
 
 ```{r}
 chooseSliderSkin("Modern")
-selectInput("Yb", label = "Year",
-              choices = 2004:2019, selected = 2018)
-       
-selectInput("Cat",label = "category",
-          choices = cate,
-          selected=head(cate, 10)[5],
-          multiple = TRUE
+selectInput("Yb",
+  label = "Year",
+  choices = 2004:2019,
+  selected = 2018
 )
-sliderInput("sldb", label = "amount", min = 10,
-        max = 750, value = 200)
-sliderInput("Mb1",  "詞頻遮罩",  0, 100, 25, 1)
-sliderInput("Mb2",  "個數遮罩",  0, 20, 5, 1)
+
+selectInput(
+  "Cat",
+  label = "category",
+  choices = cate,
+  selected = head(cate, 10)[5],
+  multiple = TRUE
+)
+sliderInput(
+  "sldb",
+  label = "amount",
+  min = 10,
+  max = 200,
+  value = 50
+)
+sliderInput("Mb1", "詞頻遮罩", 0, 100, 25, 1)
+sliderInput("Mb2", "個數遮罩", 0, 20, 2, 1)
 
 prettyRadioButtons(
-              "Sqrtb", "字頻開更號", choices = list("是"=1, "否"=0),
-              selected = 1, inline=T, icon=icon("check"),
-              status="success", animation="jelly")
+  "Sqrtb",
+  "字頻開更號",
+  choices = list("是" = 1, "否" = 0),
+  selected = 1,
+  inline = T,
+  icon = icon("check"),
+  status = "success",
+  animation = "jelly"
+)
 
-actionButton("go", label = "Go!!", class = "btn-primary", width = "100%")
+actionButton("go",
+  label = "Go!!",
+  class = "btn-primary",
+  width = "100%"
+)
 ```
 
 Column {data-width=75%}
@@ -68,31 +88,34 @@ Column {data-width=75%}
 ### 第一文字雲
 ```{r}
 
-B = eventReactive(input$go, {
-  idx <- rownames(Bmx)[rowSums(as.matrix(Bmx[,which(cate %in% input$Cat)]))>0]
+B <- eventReactive(input$go, {
+  idx <- rownames(Bmx)[rowSums(as.matrix(Bmx[, which(cate %in% input$Cat)])) > 0]
 
   rid <- rev_biz_id %>%
-    filter(lubridate::year(date)==as.numeric(input$Yb),
-           business_id %in% idx
-           ) %>%
+    filter(
+      lubridate::year(date) == as.numeric(input$Yb),
+      business_id %in% idx
+    ) %>%
     pull(rid)
 
-  wc<- dtm %>%
+  wc <- dtm %>%
     select(doc_id, lemma, freq) %>%
     filter(as.integer(doc_id) %in% rid) %>%
     group_by(lemma) %>%
     summarise(freq = sum(freq, na.rm = TRUE)) %>%
     rename(word = lemma)
 
-  wc <- wc %>% arrange(desc(freq)) %>% head(input$sldb)
+  wc <- wc %>%
+    arrange(desc(freq)) %>%
+    head(input$sldb)
 
-  wc <-  collect(wc)
+  wc <- collect(wc)
 
   wc <- wc %>%
-    filter(freq > quantile(wc$freq, probs = input$Mb1/100)) %>%
-    slice((1+input$Mb2):nrow(wc))
+    filter(freq > quantile(wc$freq, probs = input$Mb1 / 100)) %>%
+    slice((1 + input$Mb2):nrow(wc))
 
-  if(input$Sqrtb == "1") wc$freq = sqrt(wc$freq)
+  if (input$Sqrtb == "1") wc$freq <- sqrt(wc$freq)
   wc
 })
 
@@ -100,8 +123,8 @@ B = eventReactive(input$go, {
 renderWordcloud2(
   wordcloud2(
     B()
-    )
-  )  
+  )
+) 
 
 ```   
 
@@ -114,23 +137,30 @@ Column {data-width=25%}
 
 ```{r}
 chooseSliderSkin("Modern")
-selectInput("Ya", label = "Year",
-              choices = 2004:2019, selected = 2017)
+selectInput("Ya",
+  label = "Year",
+  choices = 2004:2019, selected = 2017
+)
 selectInput(
-          "Cata",label = "category", 
-          choices = cate,
-          selected=head(cate, 10)[8],
-          multiple = TRUE
-        )
-sliderInput("slda", label = "amount", min = 10, 
-        max = 750, value = 200)
-sliderInput("Ma1",  "前端(高頻)遮罩",  0, 20, 1, 1)
-sliderInput("Ma2",  "末端(低頻)遮罩",  0, 20, 2, 1)
-        
+  "Cata",
+  label = "category",
+  choices = cate,
+  selected = head(cate, 10)[8],
+  multiple = TRUE
+)
+sliderInput("slda",
+  label = "amount", min = 10,
+  max = 200, value = 50
+)
+sliderInput("Ma1", "詞頻遮罩", 0, 100, 25, 1)
+sliderInput("Ma2", "個數遮罩", 0, 20, 2, 1)
+
 prettyRadioButtons(
-              "Sqrta", "字頻開更號", choices = list("是"=1, "否"=0),
-              selected = 1, inline=T, icon=icon("check"), 
-              status="success", animation="jelly")
+  "Sqrta", "字頻開更號",
+  choices = list("是" = 1, "否" = 0),
+  selected = 1, inline = T, icon = icon("check"),
+  status = "success", animation = "jelly"
+)
 
 actionButton("goA", label = "Go!!", class = "btn-danger", width = "100%")
 ```
@@ -168,8 +198,8 @@ A = eventReactive(input$goA, {
 
   if(input$Sqrta == "1") wc_a$freq = sqrt(wc_a$freq)
   wc_a
-
   })
+
 renderWordcloud2(
   wordcloud2(
     A()
@@ -194,6 +224,7 @@ renderWordcloud2(
 Column
 -------------------------------------
 ### 第二字雲
+  
 ```{r}
 renderWordcloud2(
   wordcloud2(
