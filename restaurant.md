@@ -51,10 +51,11 @@ spark_disconnect(sc)
 #save(rest, file = 'data/restaurant.RData')
 ```
 
-這邊是做完spark的filter之後，開始用選出來的token，計算各自在泰國跟越南店被提到的次數
-然後畫成帶座標的文字雲
-目前x軸是泰國詞頻減越南詞頻，y軸是總詞頻。所以往左泰國，往右越南
-y軸則是可以確認這個token的總聲量
+這邊是做完spark的filter之後，開始用選出來的token，計算各自在泰國跟越南店被提到的次數  
+然後畫成帶座標的文字雲  
+目前x軸是泰國詞頻減越南詞頻，y軸是總詞頻。所以往左泰國，往右越南  
+y軸則是可以確認這個token的總聲量  
+
 ```R
 ### draw the wc
 # clean data
