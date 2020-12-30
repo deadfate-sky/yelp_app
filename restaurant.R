@@ -123,7 +123,7 @@ count(Y, sum, sort = TRUE) %>% top_n(30)
 Y_wc <- Y %>%
   arrange(desc(sum)) %>%
   slice(6:100)
-head(Y_wc)
+head(Y_wc)  
 
 plot(scale(Y_wc$sum, center = FALSE), type = "l")
 
