@@ -42,6 +42,3 @@ dtmEN %>% summarise_at(vars(doc_id,token), n_distinct)
 
 spark_disconnect(sc)
 
-
-# sdf_register(DTM, "dtm")
-# tbl_cache(sc,"dtm")
